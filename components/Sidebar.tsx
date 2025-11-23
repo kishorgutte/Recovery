@@ -62,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         </nav>
 
         <div className="p-4 border-t border-slate-800 text-xs text-slate-500">
-          Offline Capable • v1.3.0
+          Offline Capable • v1.4.0
         </div>
       </aside>
     </>

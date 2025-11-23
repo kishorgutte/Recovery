@@ -1,0 +1,5 @@
+{
+  "name": "MRA - Recovery Assistant",
+  "description": "A localized, offline-capable recovery assistant for managing consumer dues, follow-ups, and communications.",
+  "requestFramePermissions": []
+}

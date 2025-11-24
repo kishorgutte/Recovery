@@ -4,9 +4,7 @@ import { db } from '../services/db';
 import { Consumer, ConsumerStatus } from '../types';
 import { FileUp, Trash2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import Header from '../components/Header';
-
-// Declaration for the global XLSX object loaded via CDN
-declare const XLSX: any;
+import * as XLSX from 'xlsx';
 
 const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => {
   const navigate = useNavigate();
@@ -51,7 +49,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
       setMessage({ type: 'success', text: 'Data purged successfully. Returning to Dashboard...' });
       
       // 4. Navigate to Dashboard (Soft refresh) instead of Hard Reload
-      // This avoids the "It may have been moved, edited or deleted" error in preview envs
       setTimeout(() => {
         navigate('/');
       }, 1500);
@@ -190,10 +187,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
     setMessage(null);
 
     try {
-      if (typeof XLSX === 'undefined') {
-        throw new Error("Excel parser library not loaded. Check internet connection.");
-      }
-
       const consumers = await parseExcel(file);
       
       if (consumers.length === 0) {

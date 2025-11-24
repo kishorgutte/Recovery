@@ -5,6 +5,7 @@ export enum ConsumerStatus {
   CALL_LATER = 'Call later',
   SWITCHED_OFF = 'Switched off',
   WILL_PAY_TODAY = 'Will pay today',
+  NUMBER_CHANGED = 'Number Changed',
   TD = 'TD', // Temporarily Disconnected
   PD = 'PD', // Permanently Disconnected
   VR = 'VR', // Village Recovery (assuming specialized status)

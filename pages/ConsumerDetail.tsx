@@ -49,7 +49,8 @@ const ConsumerDetail: React.FC = () => {
     const updatedConsumer: Consumer = {
       ...consumer,
       status: newStatus as ConsumerStatus,
-      nextFollowUpDate: newStatus === ConsumerStatus.PAID ? undefined : followUpDate,
+      // Only save nextFollowUpDate if status is 'Call later'
+      nextFollowUpDate: newStatus === ConsumerStatus.CALL_LATER ? followUpDate : undefined,
       updatedAt: new Date().toISOString()
     };
     await db.updateConsumer(updatedConsumer);
@@ -191,18 +192,6 @@ const ConsumerDetail: React.FC = () => {
                  </select>
               </div>
 
-              {newStatus !== ConsumerStatus.PAID && (
-                <div>
-                   <label className="text-xs font-bold text-slate-500 uppercase">Next Follow-up</label>
-                   <input 
-                      type="date" 
-                      value={followUpDate}
-                      onChange={(e) => setFollowUpDate(e.target.value)}
-                      className="w-full p-2 mt-1 border border-slate-300 rounded-lg"
-                   />
-                </div>
-              )}
-
               <div>
                  <label className="text-xs font-bold text-slate-500 uppercase">Note</label>
                  <textarea 
@@ -212,6 +201,18 @@ const ConsumerDetail: React.FC = () => {
                     className="w-full p-2 mt-1 border border-slate-300 rounded-lg h-20"
                  ></textarea>
               </div>
+
+              {newStatus === ConsumerStatus.CALL_LATER && (
+                <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                   <label className="text-xs font-bold text-slate-500 uppercase">Next Follow-up Date</label>
+                   <input 
+                      type="date" 
+                      value={followUpDate}
+                      onChange={(e) => setFollowUpDate(e.target.value)}
+                      className="w-full p-2 mt-1 border border-slate-300 rounded-lg"
+                   />
+                </div>
+              )}
 
               <button 
                 onClick={handleSaveFollowUp}

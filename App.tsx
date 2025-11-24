@@ -15,11 +15,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      {/* 
-        Using 'fixed inset-0' ensures the app takes 100% of the viewport height 
-        without scrolling the body, preventing address bar issues on mobile.
-      */}
-      <div className="fixed inset-0 flex overflow-hidden bg-slate-100 font-sans text-slate-900">
+      <div className="flex h-screen w-screen overflow-hidden bg-slate-100 font-sans text-slate-900">
         <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
         
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden relative">

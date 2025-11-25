@@ -55,7 +55,7 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  smsTemplate: "Dear Consumer,\n\nYour electricity bill for Consumer No: *{consumerNo}* is overdue.\nTotal Due: *₹{amount}*.\n\nPlease pay immediately to avoid disconnection.",
-  whatsappTemplate: "Dear Consumer,\n\nYour electricity bill for Consumer No: *{consumerNo}* is overdue.\nTotal Due: *₹{amount}*.\n\nPlease pay immediately to avoid disconnection.",
+  smsTemplate: "Dear Consumer,\nYour electricity bill for Consumer No: *{consumerNo}* is overdue.\nTotal Due: *₹{amount}*.\nPlease pay immediately to avoid disconnection.",
+  whatsappTemplate: "Dear Consumer,\nYour electricity bill for Consumer No: *{consumerNo}* is overdue.\nTotal Due: *₹{amount}*.\nPlease pay immediately to avoid disconnection.",
   highDueThreshold: 5000
 };

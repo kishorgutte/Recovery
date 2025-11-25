@@ -85,8 +85,9 @@ const ConsumerDetail: React.FC = () => {
   const openWhatsApp = () => {
     if (!consumer) return;
     const msg = getTemplateMessage(settings.whatsappTemplate);
-    const url = `https://wa.me/91${consumer.mobile}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    // Use whatsapp:// scheme to trigger the app directly instead of the browser
+    const url = `whatsapp://send?phone=91${consumer.mobile}&text=${encodeURIComponent(msg)}`;
+    window.location.href = url;
   };
 
   const openSMS = () => {

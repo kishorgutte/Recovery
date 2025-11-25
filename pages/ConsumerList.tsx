@@ -120,8 +120,9 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
   const handleWhatsApp = (e: React.MouseEvent, c: Consumer) => {
     e.stopPropagation();
     const msg = getTemplateMessage(settings.whatsappTemplate, c);
-    const url = `https://wa.me/91${c.mobile}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    // Use whatsapp:// scheme to trigger the app directly instead of the browser
+    const url = `whatsapp://send?phone=91${c.mobile}&text=${encodeURIComponent(msg)}`;
+    window.location.href = url;
   };
 
   return (

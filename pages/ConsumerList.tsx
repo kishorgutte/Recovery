@@ -197,7 +197,9 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
         ) : filteredConsumers.length === 0 ? (
            <div className="text-center py-10 text-slate-500">No consumers match your filters.</div>
         ) : (
-          filteredConsumers.map(consumer => (
+          filteredConsumers.map(consumer => {
+            const hasMobile = !!consumer.mobile;
+            return (
             <div 
               key={consumer.consumerNo}
               onClick={() => navigate(`/consumers/${consumer.consumerNo}`)}
@@ -242,27 +244,30 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
               {/* Quick Actions Footer - Compact */}
               <div className="flex border-t border-slate-100 divide-x divide-slate-100">
                 <button 
-                  onClick={(e) => handleCall(e, consumer.mobile)}
-                  className="flex-1 py-2 flex items-center justify-center text-green-600 hover:bg-green-50 active:bg-green-100 transition-colors"
+                  onClick={(e) => hasMobile && handleCall(e, consumer.mobile)}
+                  disabled={!hasMobile}
+                  className={`flex-1 py-2 flex items-center justify-center transition-colors ${hasMobile ? 'text-green-600 hover:bg-green-50 active:bg-green-100' : 'text-slate-300 cursor-not-allowed'}`}
                 >
                   <Phone className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={(e) => handleSMS(e, consumer)}
-                  className="flex-1 py-2 flex items-center justify-center text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition-colors"
+                  onClick={(e) => hasMobile && handleSMS(e, consumer)}
+                  disabled={!hasMobile}
+                  className={`flex-1 py-2 flex items-center justify-center transition-colors ${hasMobile ? 'text-blue-600 hover:bg-blue-50 active:bg-blue-100' : 'text-slate-300 cursor-not-allowed'}`}
                 >
                   <MessageSquare className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={(e) => handleWhatsApp(e, consumer)}
-                  className="flex-1 py-2 flex items-center justify-center text-teal-600 hover:bg-teal-50 active:bg-teal-100 transition-colors"
+                  onClick={(e) => hasMobile && handleWhatsApp(e, consumer)}
+                  disabled={!hasMobile}
+                  className={`flex-1 py-2 flex items-center justify-center transition-colors ${hasMobile ? 'text-teal-600 hover:bg-teal-50 active:bg-teal-100' : 'text-slate-300 cursor-not-allowed'}`}
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </div>
 
             </div>
-          ))
+          )})
         )}
       </div>
     </div>

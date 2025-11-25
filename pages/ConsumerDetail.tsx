@@ -83,7 +83,7 @@ const ConsumerDetail: React.FC = () => {
   };
 
   const openWhatsApp = () => {
-    if (!consumer) return;
+    if (!consumer || !consumer.mobile) return;
     const msg = getTemplateMessage(settings.whatsappTemplate);
     // Use whatsapp:// scheme to trigger the app directly instead of the browser
     const url = `whatsapp://send?phone=91${consumer.mobile}&text=${encodeURIComponent(msg)}`;
@@ -91,7 +91,7 @@ const ConsumerDetail: React.FC = () => {
   };
 
   const openSMS = () => {
-    if (!consumer) return;
+    if (!consumer || !consumer.mobile) return;
     const msg = getTemplateMessage(settings.smsTemplate);
     // Mobile only usually
     window.open(`sms:${consumer.mobile}?body=${encodeURIComponent(msg)}`, '_self');
@@ -99,6 +99,8 @@ const ConsumerDetail: React.FC = () => {
 
   if (loading) return <div className="p-10 text-center">Loading...</div>;
   if (!consumer) return <div className="p-10 text-center">Consumer not found.</div>;
+
+  const hasMobile = !!consumer.mobile;
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 relative">
@@ -141,7 +143,7 @@ const ConsumerDetail: React.FC = () => {
              </div>
              <div>
                <span className="block text-xs text-slate-400">Mobile</span>
-               <span className="font-medium">{consumer.mobile}</span>
+               <span className="font-medium">{consumer.mobile || 'N/A'}</span>
              </div>
            </div>
            
@@ -153,23 +155,33 @@ const ConsumerDetail: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-3 gap-2 p-4">
-          <a 
-            href={`tel:${consumer.mobile}`}
-            className="flex flex-col items-center justify-center bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl active:bg-green-100"
-          >
-            <Phone className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Call</span>
-          </a>
+          {hasMobile ? (
+            <a 
+              href={`tel:${consumer.mobile}`}
+              className="flex flex-col items-center justify-center bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl active:bg-green-100"
+            >
+              <Phone className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Call</span>
+            </a>
+          ) : (
+            <div className="flex flex-col items-center justify-center bg-slate-50 border border-slate-200 text-slate-400 p-3 rounded-xl cursor-not-allowed opacity-60">
+                <Phone className="w-6 h-6 mb-1" />
+                <span className="text-xs font-medium">No Mobile</span>
+            </div>
+          )}
+
           <button 
             onClick={openSMS}
-            className="flex flex-col items-center justify-center bg-blue-50 border border-blue-200 text-blue-700 p-3 rounded-xl active:bg-blue-100"
+            disabled={!hasMobile}
+            className={`flex flex-col items-center justify-center border p-3 rounded-xl transition-colors ${hasMobile ? 'bg-blue-50 border-blue-200 text-blue-700 active:bg-blue-100' : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'}`}
           >
             <MessageSquare className="w-6 h-6 mb-1" />
             <span className="text-xs font-medium">SMS</span>
           </button>
           <button 
             onClick={openWhatsApp}
-            className="flex flex-col items-center justify-center bg-teal-50 border border-teal-200 text-teal-700 p-3 rounded-xl active:bg-teal-100"
+            disabled={!hasMobile}
+            className={`flex flex-col items-center justify-center border p-3 rounded-xl transition-colors ${hasMobile ? 'bg-teal-50 border-teal-200 text-teal-700 active:bg-teal-100' : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'}`}
           >
             <Send className="w-6 h-6 mb-1" />
             <span className="text-xs font-medium">WhatsApp</span>

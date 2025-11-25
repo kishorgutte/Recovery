@@ -74,8 +74,24 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
         result = result.filter(c => c.nextFollowUpDate === today && c.status !== ConsumerStatus.PAID);
       } else if (statusFilter === 'HighDue') {
         result = result.filter(c => c.totalDue >= settings.highDueThreshold && c.status !== ConsumerStatus.PAID);
-      } else if (['TD', 'PD', 'VR', 'Will pay today', 'Number Changed'].includes(statusFilter)) {
-        result = result.filter(c => c.status === statusFilter);
+      } else {
+        // Handle all specific statuses dynamically
+        // e.g. Pending, Not reachable, Call later, etc.
+        const specificStatuses = [
+           'Pending', 
+           'Not reachable', 
+           'Call later', 
+           'Switched off', 
+           'Will pay today', 
+           'Number Changed', 
+           'Number NA', 
+           'TD', 
+           'PD', 
+           'VR'
+        ];
+        if (specificStatuses.includes(statusFilter)) {
+           result = result.filter(c => c.status === statusFilter);
+        }
       }
     }
 
@@ -162,12 +178,20 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
                <option value="Paid">All Paid</option>
                <option value="PaidToday">Paid Today</option>
                <option value="FollowUpToday">Follow-up Today</option>
-               <option value="Will pay today">Will Pay Today</option>
-               <option value="Number Changed">Number Changed</option>
                <option value="HighDue">High Due</option>
-               <option value="TD">TD</option>
-               <option value="PD">PD</option>
-               <option value="VR">VR</option>
+               
+               <optgroup label="Status Tags">
+                 <option value="Pending">Pending</option>
+                 <option value="Not reachable">Not reachable</option>
+                 <option value="Call later">Call later</option>
+                 <option value="Switched off">Switched off</option>
+                 <option value="Will pay today">Will Pay Today</option>
+                 <option value="Number Changed">Number Changed</option>
+                 <option value="Number NA">Number NA</option>
+                 <option value="TD">TD</option>
+                 <option value="PD">PD</option>
+                 <option value="VR">VR</option>
+               </optgroup>
              </select>
 
              <button 

@@ -112,6 +112,21 @@ const Settings: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) =>
             </div>
           </div>
 
+          {/* Thresholds Section */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-800 mb-4">Thresholds</h3>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">High Due Threshold (₹)</label>
+              <input 
+                type="number" 
+                className="w-full p-3 border border-slate-300 rounded-lg text-sm"
+                value={settings.highDueThreshold}
+                onChange={(e) => setSettings({...settings, highDueThreshold: parseInt(e.target.value) || 0})}
+              />
+              <p className="text-xs text-slate-400 mt-1">Consumers with dues above this amount will be highlighted in red.</p>
+            </div>
+          </div>
+
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
             <h3 className="font-bold text-slate-800 mb-4">Communication Templates</h3>
             
@@ -134,20 +149,6 @@ const Settings: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) =>
                   value={settings.whatsappTemplate}
                   onChange={(e) => setSettings({...settings, whatsappTemplate: e.target.value})}
                 ></textarea>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <h3 className="font-bold text-slate-800 mb-4">Thresholds</h3>
-            
-            <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">High Due Amount (₹)</label>
-                <input 
-                  type="number"
-                  className="w-full p-3 border border-slate-300 rounded-lg"
-                  value={settings.highDueThreshold}
-                  onChange={(e) => setSettings({...settings, highDueThreshold: parseInt(e.target.value) || 0})}
-                />
             </div>
           </div>
 

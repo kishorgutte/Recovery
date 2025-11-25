@@ -6,6 +6,7 @@ export enum ConsumerStatus {
   SWITCHED_OFF = 'Switched off',
   WILL_PAY_TODAY = 'Will pay today',
   NUMBER_CHANGED = 'Number Changed',
+  NUMBER_NA = 'Number NA',
   TD = 'TD', // Temporarily Disconnected
   PD = 'PD', // Permanently Disconnected
   VR = 'VR', // Village Recovery (assuming specialized status)

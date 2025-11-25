@@ -5,7 +5,7 @@ import { Consumer, ConsumerStatus } from '../types';
 import { FileUp, Trash2, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import Header from '../components/Header';
 
-// Declaration for the global XLSX object loaded via CDN
+// Revert to global variable for stability across environments
 declare const XLSX: any;
 
 const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => {
@@ -36,22 +36,18 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
     setMessage({ type: 'success', text: 'Purging data...' });
     
     try {
-      // 1. Execute Purge
       await db.purgeConsumers();
       
-      // 2. Small delay to ensure transaction propagation
+      // Delay to ensure transaction clears
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 3. Verify Purge (Wait and Check Count)
       const count = await db.getConsumerCount();
       if (count > 0) {
-        throw new Error(`Purge verification failed. ${count} records still exist. Please try again.`);
+        throw new Error(`Purge verification failed. ${count} records still exist.`);
       }
 
       setMessage({ type: 'success', text: 'Data purged successfully. Returning to Dashboard...' });
       
-      // 4. Navigate to Dashboard (Soft refresh) instead of Hard Reload
-      // This avoids the "It may have been moved, edited or deleted" error in preview envs
       setTimeout(() => {
         navigate('/');
       }, 1500);
@@ -67,12 +63,15 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
+          if (typeof XLSX === 'undefined') {
+            throw new Error("Excel Parser not loaded. Please check your internet connection.");
+          }
+
           const data = e.target?.result;
           const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const sheet = workbook.Sheets[sheetName];
           
-          // Read data as JSON
           const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
           if (jsonData.length === 0) {
@@ -80,31 +79,23 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
             return;
           }
 
-          // --- ROBUST HEADER MAPPING ---
-          // Get actual headers from the first row of data
           const firstRow = jsonData[0] as any;
           const fileHeaders = Object.keys(firstRow);
 
-          // Helper: Find matching key in file headers (Case insensitive, ignores spaces)
           const findKey = (expected: string): string | null => {
-            // 1. Exact match
             if (fileHeaders.includes(expected)) return expected;
-
-            // 2. Normalize and compare (remove spaces, lowercase)
             const normalizedExpected = expected.toLowerCase().replace(/\s+/g, '');
-            
             return fileHeaders.find(h => 
               h.toLowerCase().replace(/\s+/g, '') === normalizedExpected
             ) || null;
           };
 
-          // Map internal app keys to actual file column names
           const colMap = {
             consumerNo: findKey('Consumer No'),
             name: findKey('Name'),
             address: findKey('Address'),
-            mobile: findKey('Consumer Mobile Number') || findKey('Mobile'), // Fallback to 'Mobile'
-            totalDue: findKey('Total Due Amount Including Current Bill') || findKey('Total Due'), // Fallback
+            mobile: findKey('Consumer Mobile Number') || findKey('Mobile'),
+            totalDue: findKey('Total Due Amount Including Current Bill') || findKey('Total Due'),
             billDueDate: findKey('Bill Due Date'),
             ageInDays: findKey('Age in Days'),
             lastReceiptDate: findKey('Last Receipt Date'),
@@ -115,29 +106,24 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
             tdPdDate: findKey('TD/PD Date') || findKey('TD PD Date'),
           };
 
-          // Validation: Critical column check
           if (!colMap.consumerNo) {
-             console.error("Available headers:", fileHeaders);
-             throw new Error(`Column "Consumer No" not found. Found headers: ${fileHeaders.slice(0, 3).join(', ')}...`);
+             throw new Error(`Column "Consumer No" not found.`);
           }
 
           const consumers: Consumer[] = [];
           
           jsonData.forEach((row: any) => {
-             // Helper to get value using mapped key
              const getVal = (mappedKey: string | null) => {
                if (!mappedKey) return '';
                const val = row[mappedKey];
                return (val !== undefined && val !== null) ? String(val).trim() : '';
              };
              
-             // Helper to get numeric value using mapped key
              const getNum = (mappedKey: string | null) => {
                if (!mappedKey) return 0;
                const val = row[mappedKey];
                if (typeof val === 'number') return val;
                if (typeof val === 'string') {
-                 // Remove commas, currency symbols, keep numbers and decimals
                  const clean = val.replace(/[^0-9.-]/g, '');
                  return clean ? parseFloat(clean) : 0;
                }
@@ -145,8 +131,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
              };
 
              const consumerNo = getVal(colMap.consumerNo);
-             
-             // Skip invalid rows
              if (!consumerNo) return;
 
              const consumer: Consumer = {
@@ -163,8 +147,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
               meterNumber: getVal(colMap.meterNumber),
               remark: getVal(colMap.remark),
               tdPdDate: getVal(colMap.tdPdDate),
-              
-              // Defaults
               status: ConsumerStatus.PENDING,
               updatedAt: new Date().toISOString()
             };
@@ -191,13 +173,13 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
 
     try {
       if (typeof XLSX === 'undefined') {
-        throw new Error("Excel parser library not loaded. Check internet connection.");
+         throw new Error("Excel Parser not loaded.");
       }
 
       const consumers = await parseExcel(file);
       
       if (consumers.length === 0) {
-        throw new Error("No valid rows found. Please check if 'Consumer No' column exists.");
+        throw new Error("No valid rows found.");
       }
 
       await db.saveConsumers(consumers);
@@ -219,7 +201,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
       <main className="p-4 md:p-6 w-full flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto">
           
-          {/* Status Message */}
           {message && (
             <div className={`p-4 mb-6 rounded-lg flex items-center gap-3 shadow-sm ${message.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
                {message.type === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0"/> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
@@ -227,7 +208,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
             </div>
           )}
 
-          {/* Import Section */}
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-slate-100">
             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
               <FileUp className="w-5 h-5 text-blue-600" /> Import New List
@@ -245,10 +225,7 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {EXPECTED_COLUMNS.map((col, idx) => (
-                    <span 
-                      key={idx} 
-                      className="px-2 py-1 bg-white border border-blue-200 text-slate-700 text-xs rounded shadow-sm"
-                    >
+                    <span key={idx} className="px-2 py-1 bg-white border border-blue-200 text-slate-700 text-xs rounded shadow-sm">
                       {col}
                     </span>
                   ))}
@@ -282,7 +259,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
             </div>
           </div>
 
-          {/* Cycle Management */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100 mb-6">
              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                <Trash2 className="w-5 h-5 text-red-600" /> Cycle Management
@@ -303,7 +279,6 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
         </div>
       </main>
 
-      {/* Warning Modal */}
       {showPurgeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-200">

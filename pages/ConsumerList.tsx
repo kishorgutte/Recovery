@@ -57,15 +57,20 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
 
     // 2. Filter Status/Type
     if (statusFilter !== 'All') {
-      const today = new Date().toISOString().split('T')[0];
+      // Use local date for 'today' comparison to ensure correct timezone handling
+      const today = new Date().toLocaleDateString('en-CA');
       
       if (statusFilter === 'Paid') {
         result = result.filter(c => c.status === ConsumerStatus.PAID);
       } else if (statusFilter === 'PaidToday') {
-        result = result.filter(c => c.status === ConsumerStatus.PAID && c.updatedAt.startsWith(today));
+        result = result.filter(c => 
+          c.status === ConsumerStatus.PAID && 
+          new Date(c.updatedAt).toLocaleDateString('en-CA') === today
+        );
       } else if (statusFilter === 'Unpaid') {
         result = result.filter(c => c.status !== ConsumerStatus.PAID);
       } else if (statusFilter === 'FollowUpToday') {
+        // nextFollowUpDate is already YYYY-MM-DD (local/agnostic)
         result = result.filter(c => c.nextFollowUpDate === today && c.status !== ConsumerStatus.PAID);
       } else if (statusFilter === 'HighDue') {
         result = result.filter(c => c.totalDue >= settings.highDueThreshold && c.status !== ConsumerStatus.PAID);
@@ -85,7 +90,7 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
   }, [consumers, searchTerm, statusFilter, sortBy, settings]);
 
   const getStatusColor = (c: Consumer) => {
-    if (c.status === ConsumerStatus.PAID) return 'border-l-4 border-green-500 bg-green-50';
+    if (c.status === ConsumerStatus.PAID) return 'border-l-4 border-green-50 bg-green-50';
     if (['TD', 'PD', 'VR'].includes(c.status)) return 'border-l-4 border-slate-400 bg-slate-50';
     if (c.totalDue >= settings.highDueThreshold) return 'border-l-4 border-red-500 bg-red-50';
     if (c.ageInDays > 30) return 'border-l-4 border-orange-400';

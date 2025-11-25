@@ -15,6 +15,22 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 
+// Moved Component outside to prevent re-creation on every render
+const MetricCard = ({ title, value, icon: Icon, colorClass, onClick, hideIconOnMobile }: any) => (
+  <div 
+    onClick={onClick}
+    className={`bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-3 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+  >
+    <div className="flex-1 min-w-0">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">{title}</p>
+      <h3 className="text-lg sm:text-2xl font-bold text-slate-800 mt-1 break-words">{value}</h3>
+    </div>
+    <div className={`p-3 rounded-full ${colorClass} bg-opacity-10 flex-shrink-0 ${hideIconOnMobile ? 'hidden sm:flex' : 'flex'}`}>
+      <Icon className={`w-6 h-6 ${colorClass.replace('bg-', 'text-')}`} />
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   
@@ -78,8 +94,8 @@ const Dashboard: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) =
         }
 
         // 2. Activity / Attended on this date (Performance)
-        // We check updatedAt. Note: updatedAt is ISO string. 
-        const updatedDatePart = c.updatedAt.split('T')[0];
+        // We check updatedAt using local date string comparison to account for timezone
+        const updatedDatePart = new Date(c.updatedAt).toLocaleDateString('en-CA');
 
         if (updatedDatePart === targetDate) {
           attended++;
@@ -118,7 +134,7 @@ const Dashboard: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) =
   // --- Helpers for Actions ---
 
   const getStatusColor = (c: Consumer) => {
-    if (c.status === ConsumerStatus.PAID) return 'border-l-4 border-green-500 bg-green-50';
+    if (c.status === ConsumerStatus.PAID) return 'border-l-4 border-green-50 bg-green-50';
     if (['TD', 'PD', 'VR'].includes(c.status)) return 'border-l-4 border-slate-400 bg-slate-50';
     if (c.totalDue >= settings.highDueThreshold) return 'border-l-4 border-red-500 bg-red-50';
     if (c.ageInDays > 30) return 'border-l-4 border-orange-400';
@@ -149,22 +165,6 @@ const Dashboard: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) =
     const url = `https://wa.me/91${c.mobile}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   };
-
-  const MetricCard = ({ title, value, icon: Icon, colorClass, onClick, hideIconOnMobile }: any) => (
-    <div 
-      onClick={onClick}
-      className={`bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center justify-between gap-3 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
-    >
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">{title}</p>
-        {/* Removed truncate to ensure full number visibility, let it wrap if needed */}
-        <h3 className="text-lg sm:text-2xl font-bold text-slate-800 mt-1 break-words">{value}</h3>
-      </div>
-      <div className={`p-3 rounded-full ${colorClass} bg-opacity-10 flex-shrink-0 ${hideIconOnMobile ? 'hidden sm:flex' : 'flex'}`}>
-        <Icon className={`w-6 h-6 ${colorClass.replace('bg-', 'text-')}`} />
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex flex-col h-full bg-slate-50">

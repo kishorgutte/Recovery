@@ -33,7 +33,7 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
 
   const executePurge = async () => {
     setShowPurgeModal(false);
-    setMessage({ type: 'success', text: 'Purging data...' });
+    setMessage({ type: 'success', text: 'Deleting data...' });
     
     try {
       await db.purgeConsumers();
@@ -43,10 +43,10 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
 
       const count = await db.getConsumerCount();
       if (count > 0) {
-        throw new Error(`Purge verification failed. ${count} records still exist.`);
+        throw new Error(`Delete verification failed. ${count} records still exist.`);
       }
 
-      setMessage({ type: 'success', text: 'Data purged successfully. Returning to Dashboard...' });
+      setMessage({ type: 'success', text: 'Data deleted successfully. Returning to Dashboard...' });
       
       setTimeout(() => {
         navigate('/');
@@ -54,7 +54,7 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
 
     } catch (e: any) {
       console.error(e);
-      setMessage({ type: 'error', text: e.message || 'Failed to purge data.' });
+      setMessage({ type: 'error', text: e.message || 'Failed to delete data.' });
     }
   };
 
@@ -273,7 +273,7 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
                onClick={() => setShowPurgeModal(true)}
                className="w-full sm:w-auto px-6 py-2.5 bg-red-50 text-red-700 font-semibold rounded-lg border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
              >
-               <Trash2 className="w-4 h-4" /> Purge Old Data
+               <Trash2 className="w-4 h-4" /> Delete Consumers
              </button>
           </div>
         </div>
@@ -294,7 +294,7 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
                 </div>
                 
                 <div className="space-y-4 text-slate-600 mb-8">
-                   <p className="text-sm">You are about to purge the database. Please confirm:</p>
+                   <p className="text-sm">You are about to delete all consumers. Please confirm:</p>
                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm space-y-2">
                       <div className="flex items-center gap-2 text-red-700 font-medium">
                         <Trash2 className="w-4 h-4" />
@@ -320,7 +320,7 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
                      className="flex-1 py-3 px-4 bg-red-600 text-white font-semibold rounded-xl shadow-lg hover:bg-red-700 active:bg-red-800 transition-colors flex items-center justify-center gap-2"
                    >
                      <Trash2 className="w-5 h-5" />
-                     Yes, Purge
+                     Yes, Delete
                    </button>
                 </div>
              </div>

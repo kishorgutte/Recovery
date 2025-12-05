@@ -75,7 +75,7 @@ const Settings: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) =>
       <Header title="Settings" onMenuClick={toggleSidebar} />
       
       <main className="flex-1 overflow-y-auto p-4 w-full">
-        <div className="max-w-2xl mx-auto space-y-6 pb-6">
+        <div className="max-w-2xl mx-auto space-y-6 pb-24">
         
           {/* Backup & Restore Section */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">

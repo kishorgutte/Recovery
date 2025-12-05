@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '../services/db';
 import { Consumer, ConsumerStatus, AppSettings, DEFAULT_SETTINGS } from '../types';
-import { Search, Filter, ArrowUpDown, Phone, MessageSquare, Send } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Phone, MessageSquare, Send, Copy, CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 
 const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => {
@@ -17,6 +17,10 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
   const [statusFilter, setStatusFilter] = useState<string>('Unpaid'); // Default to Unpaid
   const [sortBy, setSortBy] = useState<'amount' | 'age'>('amount');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Toast State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     // Check for URL filter param (e.g. ?filter=FollowUpToday)
@@ -141,8 +145,16 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
     window.location.href = url;
   };
 
+  const handleCopy = (e: React.MouseEvent, text: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setToastMessage('Copied to clipboard!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-slate-100">
+    <div className="flex flex-col h-full bg-slate-100 relative">
       <Header title="Consumer List" onMenuClick={toggleSidebar} />
 
       {/* Search & Filter Bar */}
@@ -245,7 +257,15 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
 
                 {/* Row 2: Consumer No | Age | Tags - COMPACT LINE (Smaller) */}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
-                  <span className="font-mono bg-slate-100 px-1 rounded">#{consumer.consumerNo}</span>
+                  <button 
+                    type="button"
+                    className="font-mono bg-slate-100 px-2 py-0.5 rounded flex items-center gap-1 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
+                    onClick={(e) => handleCopy(e, consumer.consumerNo)}
+                    title="Copy Consumer Number"
+                  >
+                    #{consumer.consumerNo}
+                    <Copy className="w-3 h-3 text-slate-500" />
+                  </button>
                   <span className="text-slate-300">|</span>
                   <span>{consumer.ageInDays}d</span>
                   
@@ -294,6 +314,14 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
           )})
         )}
       </div>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-50 animate-[fadeIn_0.3s_ease-out]">
+          <CheckCircle className="w-5 h-5 text-green-400" />
+          <span className="font-medium text-sm">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

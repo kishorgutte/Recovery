@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Consumer, FollowUpHistory, ConsumerStatus, DEFAULT_SETTINGS } from '../types';
-import { Phone, MessageSquare, Send, ChevronLeft, Save, History, CheckCircle } from 'lucide-react';
+import { Phone, MessageSquare, Send, ChevronLeft, Save, History, CheckCircle, Copy } from 'lucide-react';
 
 const ConsumerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +19,7 @@ const ConsumerDetail: React.FC = () => {
   
   // Notification State
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     if (id) loadData(id);
@@ -70,8 +71,16 @@ const ConsumerDetail: React.FC = () => {
     await loadData(consumer.consumerNo);
     
     // Show Toast Notification
+    setToastMessage('Follow-up Updated!');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setToastMessage('Copied to clipboard!');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
   };
 
   const getTemplateMessage = (template: string) => {
@@ -110,7 +119,13 @@ const ConsumerDetail: React.FC = () => {
         </button>
         <div>
            <h1 className="font-bold leading-tight">{consumer.name}</h1>
-           <p className="text-xs text-blue-100">#{consumer.consumerNo}</p>
+           <p 
+             className="text-sm font-medium text-blue-100 flex items-center gap-2 cursor-pointer hover:text-white mt-0.5"
+             onClick={() => handleCopy(consumer.consumerNo)}
+           >
+             #{consumer.consumerNo}
+             <Copy className="w-3.5 h-3.5" />
+           </p>
         </div>
       </header>
 
@@ -265,7 +280,7 @@ const ConsumerDetail: React.FC = () => {
       {showToast && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-50 animate-[fadeIn_0.3s_ease-out]">
           <CheckCircle className="w-5 h-5 text-green-400" />
-          <span className="font-medium text-sm">Follow-up Updated!</span>
+          <span className="font-medium text-sm">{toastMessage}</span>
         </div>
       )}
     </div>

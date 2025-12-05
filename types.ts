@@ -1,3 +1,4 @@
+
 export enum ConsumerStatus {
   PENDING = 'Pending',
   PAID = 'Paid',
@@ -10,6 +11,7 @@ export enum ConsumerStatus {
   TD = 'TD', // Temporarily Disconnected
   PD = 'PD', // Permanently Disconnected
   VR = 'VR', // Village Recovery (assuming specialized status)
+  ROAD_WIDENING = 'Road widening',
 }
 
 export interface Consumer {

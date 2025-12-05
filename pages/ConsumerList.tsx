@@ -91,7 +91,8 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
            'Number NA', 
            'TD', 
            'PD', 
-           'VR'
+           'VR',
+           'Road widening'
         ];
         if (specificStatuses.includes(statusFilter)) {
            result = result.filter(c => c.status === statusFilter);
@@ -203,6 +204,7 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
                  <option value="TD">TD</option>
                  <option value="PD">PD</option>
                  <option value="VR">VR</option>
+                 <option value="Road widening">Road widening</option>
                </optgroup>
              </select>
 

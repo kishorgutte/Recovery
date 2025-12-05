@@ -184,8 +184,14 @@ const ImportData: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) 
 
       await db.saveConsumers(consumers);
       
-      setMessage({ type: 'success', text: `Successfully imported ${consumers.length} consumers.` });
+      setMessage({ type: 'success', text: `Successfully imported ${consumers.length} consumers. Redirecting to list...` });
       if (fileInputRef.current) fileInputRef.current.value = '';
+
+      // Redirect after success
+      setTimeout(() => {
+        navigate('/consumers');
+      }, 1500);
+      
     } catch (err: any) {
       console.error(err);
       setMessage({ type: 'error', text: err.message || "Import failed." });

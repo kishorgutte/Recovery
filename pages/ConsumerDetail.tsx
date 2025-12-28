@@ -61,35 +61,20 @@ const ConsumerDetail: React.FC = () => {
     setIsHistoryLoading(true);
     setHistoryError(null);
     try {
-      // Use AllOrigins proxy which wraps the response in JSON, avoiding direct CORS/403 issues often seen with direct piping
-      const targetUrl = `https://mobileapp.mahadiscom.in/empapp/GetBillHistory?consumerno=${consumerNo}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&disableCache=${new Date().getTime()}`;
+      // Use internal Vercel API route (Serverless Function)
+      // This solves CORS, hides the upstream API details, and allows caching.
+      const response = await fetch(`/api/billHistory?consumerno=${consumerNo}`);
       
-      const response = await fetch(proxyUrl);
-      
+      // Handle deployment lag or missing API route
+      if (response.status === 404) {
+        throw new Error("API Service Update in progress. Please retry later.");
+      }
+
       if (!response.ok) {
-        throw new Error(`Proxy Error: ${response.status}`);
+        throw new Error(`API Error: ${response.status}`);
       }
       
-      const wrapperData = await response.json();
-
-      // Check for upstream HTTP errors
-      if (wrapperData.status?.http_code && wrapperData.status.http_code >= 400) {
-         throw new Error(`API Error: ${wrapperData.status.http_code}`);
-      }
-      
-      if (!wrapperData.contents) {
-        throw new Error("Empty response received.");
-      }
-
-      // AllOrigins returns the actual body as a string in 'contents'
-      let data;
-      try {
-        data = JSON.parse(wrapperData.contents);
-      } catch (parseErr) {
-        console.error("JSON Parse Error:", parseErr, wrapperData.contents);
-        throw new Error("Invalid data format received.");
-      }
+      const data = await response.json();
       
       if (Array.isArray(data)) {
         setBillHistory(data);
@@ -99,7 +84,12 @@ const ConsumerDetail: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Failed to fetch bill history:", err);
-      setHistoryError(err.message || "Unable to retrieve bill history.");
+      // More user friendly error if it was a 404/500 from our own backend logic or network
+      if (err.message && (err.message.includes("404") || err.message.includes("Service Update"))) {
+         setHistoryError("Service is updating. Please check back in a few minutes.");
+      } else {
+         setHistoryError("Unable to retrieve bill history. Please check your connection.");
+      }
     } finally {
       setIsHistoryLoading(false);
     }
@@ -382,8 +372,8 @@ const ConsumerDetail: React.FC = () => {
                    <div className="bg-red-50 p-4 rounded-full mb-3">
                      <WifiOff className="w-8 h-8 text-red-500" />
                    </div>
-                   <h3 className="font-bold text-slate-800 mb-1">Connection Error</h3>
-                   <p className="text-slate-500 text-sm px-8">{historyError}</p>
+                   <h3 className="font-bold text-slate-800 mb-1">Status: Offline</h3>
+                   <p className="text-slate-500 text-sm px-8 mb-2">{historyError}</p>
                    <button 
                      onClick={() => fetchBillHistory(consumer.consumerNo)}
                      className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold"

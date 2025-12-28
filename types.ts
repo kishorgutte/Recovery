@@ -14,6 +14,25 @@ export enum ConsumerStatus {
   ROAD_WIDENING = 'Road widening',
 }
 
+export interface PaymentReceipt {
+  Amount: string;
+  TransactionDateTime: string;
+  receiptMedium: string;
+}
+
+export interface BillHistory {
+  BillMonth: string;
+  Consumption: string;
+  meterStatus: string;
+  consumerStatus: string;
+  CurrentBill: string;
+  BillDate: string;
+  Receipts: PaymentReceipt[];
+  tariffCode?: string;
+  tariffDesc: string;
+  theftBillRevisions?: any[];
+}
+
 export interface Consumer {
   consumerNo: string; // Primary Key
   name: string;
@@ -33,6 +52,9 @@ export interface Consumer {
   status: ConsumerStatus;
   nextFollowUpDate?: string; // YYYY-MM-DD
   updatedAt: string;
+  
+  // New field for Paid History
+  billHistory?: BillHistory[];
 }
 
 export interface FollowUpHistory {

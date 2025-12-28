@@ -1,6 +1,6 @@
 
 export default async function handler(request, response) {
-  // 1. Enable CORS (Critical for Sandbox -> Prod communication)
+  // 1. Enable CORS
   response.setHeader('Access-Control-Allow-Credentials', true);
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -9,26 +9,25 @@ export default async function handler(request, response) {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // 2. Handle Preflight Requests
+  // 2. Handle Preflight
   if (request.method === 'OPTIONS') {
     return response.status(200).end();
   }
 
-  // Safe destructuring in case query is undefined in some envs
   const query = request.query || {};
-  let { consumerno } = query;
+  let { consumerno, billMonth } = query;
 
-  if (!consumerno) {
-    return response.status(400).json({ error: 'Consumer number is required' });
+  if (!consumerno || !billMonth) {
+    return response.status(400).json({ error: 'Consumer number and Bill Month are required' });
   }
 
-  // Sanitize input
   consumerno = consumerno.trim();
+  billMonth = billMonth.trim();
 
   try {
-    const targetUrl = `https://mobileapp.mahadiscom.in/empapp/GetBillHistory?consumerno=${consumerno}`;
+    const targetUrl = `https://mobileapp.mahadiscom.in/empapp/GetBillHistory/WebUrl?consumerno=${consumerno}&billMonth=${encodeURIComponent(billMonth)}`;
     
-    // 3. Robust Timeout using Promise.race (More stable than AbortController in some serverless envs)
+    // 3. Timeout
     const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request Timeout')), 10000)
     );
@@ -42,25 +41,17 @@ export default async function handler(request, response) {
 
     const apiResponse = await Promise.race([fetchPromise, timeoutPromise]);
 
-    // 4. Disable Caching (Real-time data requirement)
     response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.setHeader('Pragma', 'no-cache');
-    response.setHeader('Expires', '0');
-
-    // Handle 404 from upstream (Consumer ID not found in their DB) gracefully
-    if (apiResponse.status === 404) {
-      return response.status(200).json([]);
-    }
 
     if (!apiResponse.ok) {
-      return response.status(apiResponse.status).json({ error: 'Failed to fetch data from provider' });
+      return response.status(apiResponse.status).json({ error: 'Failed to fetch URL from provider' });
     }
 
     const data = await apiResponse.json();
-
     return response.status(200).json(data);
+
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("API Proxy Error:", error);
     return response.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 }

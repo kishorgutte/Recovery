@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Consumer, FollowUpHistory, ConsumerStatus, DEFAULT_SETTINGS, BillHistory } from '../types';
-import { Phone, MessageSquare, Send, ChevronLeft, Save, History, CheckCircle, Copy, FileText, Zap, Calendar, CreditCard, Loader2, WifiOff, AlertTriangle } from 'lucide-react';
+import { Phone, MessageSquare, Send, ChevronLeft, Save, History, CheckCircle, Copy, FileText, Zap, Calendar, CreditCard, Loader2, WifiOff, AlertTriangle, Download, ExternalLink } from 'lucide-react';
 
 const ConsumerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +18,9 @@ const ConsumerDetail: React.FC = () => {
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  
+  // View Bill State
+  const [viewingBill, setViewingBill] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -61,15 +64,23 @@ const ConsumerDetail: React.FC = () => {
     setIsHistoryLoading(true);
     setHistoryError(null);
     try {
-      // Use internal Vercel API route (Serverless Function)
-      // This solves CORS, hides the upstream API details, and allows caching.
-      const response = await fetch(`/api/billHistory?consumerno=${consumerNo}`);
+      let response;
       
-      // Handle deployment lag or missing API route
-      if (response.status === 404) {
-        throw new Error("API Service Update in progress. Please retry later.");
+      // Attempt 1: Local / Relative API
+      try {
+        response = await fetch(`/api/billHistory?consumerno=${consumerNo}`, { cache: 'no-store' });
+        
+        const contentType = response.headers.get("content-type");
+        if (response.status === 404 || (contentType && contentType.includes("text/html"))) {
+           throw new Error("Local API route missing");
+        }
+      } catch (localErr) {
+        console.warn("Local API unreachable, switching to production...", localErr);
+        // Attempt 2: Fallback to Production API
+        response = await fetch(`https://mra-eta.vercel.app/api/billHistory?consumerno=${consumerNo}`, { cache: 'no-store' });
       }
 
+      // Check final response
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
@@ -79,19 +90,55 @@ const ConsumerDetail: React.FC = () => {
       if (Array.isArray(data)) {
         setBillHistory(data);
       } else {
-        // Fallback if the API returns a single object instead of an array
         setBillHistory(data ? [data] : []);
       }
     } catch (err: any) {
       console.error("Failed to fetch bill history:", err);
-      // More user friendly error if it was a 404/500 from our own backend logic or network
-      if (err.message && (err.message.includes("404") || err.message.includes("Service Update"))) {
-         setHistoryError("Service is updating. Please check back in a few minutes.");
-      } else {
-         setHistoryError("Unable to retrieve bill history. Please check your connection.");
-      }
+      setHistoryError("Unable to retrieve bill history. Please check your connection.");
     } finally {
       setIsHistoryLoading(false);
+    }
+  };
+
+  const handleViewBill = async (billMonth: string) => {
+    if (!consumer) return;
+    setViewingBill(billMonth);
+    
+    try {
+        const params = `consumerno=${consumer.consumerNo}&billMonth=${encodeURIComponent(billMonth)}`;
+        let response;
+        
+        // Try Local with fallback
+        try {
+             response = await fetch(`/api/getBillUrl?${params}`, { cache: 'no-store' });
+             const contentType = response.headers.get("content-type");
+             if (response.status === 404 || (contentType && contentType.includes("text/html"))) {
+                throw new Error("Local API route missing");
+             }
+        } catch (localErr) {
+             console.log("Local API failed, using production fallback");
+             response = await fetch(`https://mra-eta.vercel.app/api/getBillUrl?${params}`, { cache: 'no-store' });
+        }
+
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (data.responseStatus === "SUCCESS" && data.webUrl) {
+            window.open(data.webUrl, '_blank');
+        } else {
+            setToastMessage("Bill PDF not available.");
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+        }
+
+    } catch (err) {
+        console.error(err);
+        setToastMessage("Failed to open bill.");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+    } finally {
+        setViewingBill(null);
     }
   };
 
@@ -119,7 +166,7 @@ const ConsumerDetail: React.FC = () => {
     }
 
     setNote('');
-    // Reload data to reflect changes (re-fetches DB but we don't need to re-fetch API history necessarily)
+    // Reload data to reflect changes
     const [c, h] = await Promise.all([
         db.getConsumer(consumer.consumerNo),
         db.getHistoryForConsumer(consumer.consumerNo)
@@ -404,7 +451,21 @@ const ConsumerDetail: React.FC = () => {
                         <FileText className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800">{bill.BillMonth}</h3>
+                        <div className="flex items-center gap-2">
+                           <h3 className="font-bold text-slate-800">{bill.BillMonth}</h3>
+                           <button 
+                                onClick={() => handleViewBill(bill.BillMonth)}
+                                disabled={viewingBill !== null}
+                                className="p-1 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                                title="View Bill PDF"
+                           >
+                                {viewingBill === bill.BillMonth ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4" />
+                                )}
+                           </button>
+                        </div>
                         <p className="text-xs text-slate-500">{bill.BillDate}</p>
                       </div>
                     </div>

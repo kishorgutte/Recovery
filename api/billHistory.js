@@ -27,10 +27,15 @@ export default async function handler(request, response) {
 
     clearTimeout(timeout);
 
+    // CRITICAL: Disable Caching. 
+    // We need real-time data to verify if a customer has just paid.
+    response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.setHeader('Pragma', 'no-cache');
+    response.setHeader('Expires', '0');
+
     // Handle 404 from upstream (Consumer ID not found in their DB) gracefully
     // Instead of throwing an error, we return an empty history list
     if (apiResponse.status === 404) {
-      response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
       return response.status(200).json([]);
     }
 
@@ -39,10 +44,6 @@ export default async function handler(request, response) {
     }
 
     const data = await apiResponse.json();
-
-    // Cache Control: Cache the result on Vercel's Edge Network for 1 hour (3600 seconds)
-    // stale-while-revalidate allows serving old data while fetching new data in the background
-    response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate');
 
     return response.status(200).json(data);
   } catch (error) {

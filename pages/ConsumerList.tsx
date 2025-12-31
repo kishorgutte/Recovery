@@ -1,22 +1,40 @@
-import React, { useEffect, useState, useMemo } from 'react';
+
+import React, { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '../services/db';
 import { Consumer, ConsumerStatus, AppSettings, DEFAULT_SETTINGS } from '../types';
 import { Search, Filter, ArrowUpDown, Phone, MessageSquare, Send, Copy, CheckCircle } from 'lucide-react';
 import Header from '../components/Header';
 
+const STORAGE_KEY = 'MRA_LIST_VIEW_STATE';
+
 const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  
+  // 1. Get Saved State from Session Storage
+  const getSavedState = () => {
+    try {
+      const item = sessionStorage.getItem(STORAGE_KEY);
+      return item ? JSON.parse(item) : null;
+    } catch { return null; }
+  };
+  const savedState = getSavedState();
+
+  // 2. Initialize State with Saved Values (or defaults)
   const [consumers, setConsumers] = useState<Consumer[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   
   // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('Unpaid'); // Default to Unpaid
-  const [sortBy, setSortBy] = useState<'amount' | 'age'>('amount');
-  const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(savedState?.searchTerm || '');
+  const [statusFilter, setStatusFilter] = useState<string>(savedState?.statusFilter || 'Unpaid');
+  const [sortBy, setSortBy] = useState<'amount' | 'age'>(savedState?.sortBy || 'amount');
+  const [showFilters, setShowFilters] = useState(savedState?.showFilters || false);
+
+  // Refs
+  const listContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTopRef = useRef(savedState?.scrollTop || 0); // Track scroll position manually
 
   // Toast State
   const [showToast, setShowToast] = useState(false);
@@ -28,6 +46,7 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
     if (filterParam) {
       setStatusFilter(filterParam);
       setShowFilters(true); // Auto-expand filters so user knows why list is filtered
+      scrollTopRef.current = 0; // Reset scroll if filter changes via URL
     }
   }, [searchParams]);
 
@@ -44,6 +63,23 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
     };
     fetchData();
   }, []);
+
+  // 4. Save State on Unmount
+  useEffect(() => {
+    const saveState = () => {
+        const state = {
+            searchTerm,
+            statusFilter,
+            sortBy,
+            showFilters,
+            scrollTop: scrollTopRef.current // Use the tracked ref value
+        };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    };
+    
+    // Save state when component unmounts or dependencies change (cleanup runs before next effect)
+    return () => saveState();
+  }, [searchTerm, statusFilter, sortBy, showFilters]);
 
   const filteredConsumers = useMemo(() => {
     let result = consumers;
@@ -74,13 +110,11 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
       } else if (statusFilter === 'Unpaid') {
         result = result.filter(c => c.status !== ConsumerStatus.PAID);
       } else if (statusFilter === 'FollowUpToday') {
-        // nextFollowUpDate is already YYYY-MM-DD (local/agnostic)
         result = result.filter(c => c.nextFollowUpDate === today && c.status !== ConsumerStatus.PAID);
       } else if (statusFilter === 'HighDue') {
         result = result.filter(c => c.totalDue >= settings.highDueThreshold && c.status !== ConsumerStatus.PAID);
       } else {
         // Handle all specific statuses dynamically
-        // e.g. Pending, Not reachable, Call later, etc.
         const specificStatuses = [
            'Pending', 
            'Not reachable', 
@@ -109,6 +143,29 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
 
     return result;
   }, [consumers, searchTerm, statusFilter, sortBy, settings]);
+
+  // 3. Restore Scroll Position logic - Moved after filteredConsumers definition
+  useLayoutEffect(() => {
+    // Only attempt restore if not loading, we have a saved state, and items are rendered
+    if (!loading && savedState && listContainerRef.current && filteredConsumers.length > 0) {
+        
+        // Ensure we are restoring for the same view context
+        const isSameView = savedState.statusFilter === statusFilter && 
+                           savedState.searchTerm === searchTerm;
+        
+        if (isSameView && savedState.scrollTop > 0) {
+             // Use requestAnimationFrame to ensure DOM paint is complete
+             requestAnimationFrame(() => {
+                if (listContainerRef.current) {
+                    listContainerRef.current.scrollTop = savedState.scrollTop;
+                    // Sync the ref too
+                    scrollTopRef.current = savedState.scrollTop;
+                }
+             });
+        }
+    }
+  }, [loading, filteredConsumers.length]); // Re-run if list length changes (initial populate)
+
 
   const getStatusColor = (c: Consumer) => {
     if (c.status === ConsumerStatus.PAID) return 'border-l-4 border-green-50 bg-green-50';
@@ -141,7 +198,6 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
   const handleWhatsApp = (e: React.MouseEvent, c: Consumer) => {
     e.stopPropagation();
     const msg = getTemplateMessage(settings.whatsappTemplate, c);
-    // Use whatsapp:// scheme to trigger the app directly instead of the browser
     const url = `whatsapp://send?phone=91${c.mobile}&text=${encodeURIComponent(msg)}`;
     window.location.href = url;
   };
@@ -152,6 +208,11 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
     setToastMessage('Copied to clipboard!');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
+  };
+
+  // Track scroll on the container
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+     scrollTopRef.current = e.currentTarget.scrollTop;
   };
 
   return (
@@ -229,7 +290,11 @@ const ConsumerList: React.FC<{ toggleSidebar: () => void }> = ({ toggleSidebar }
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div 
+        ref={listContainerRef} 
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-3 space-y-3"
+      >
         {loading ? (
            <div className="text-center py-10">Loading...</div>
         ) : filteredConsumers.length === 0 ? (
